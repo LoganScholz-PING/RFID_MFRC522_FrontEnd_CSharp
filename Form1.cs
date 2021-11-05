@@ -29,10 +29,17 @@ namespace demoCSHARPtoRFID
         private void btnWRITE_Click(object sender, EventArgs e)
         {
             string woData = txtWORKORDER.Text;
-
             woData = woData.Trim();
 
-            sendWRITEPacketToRC522(woData);
+            // make sure the workorder is a parsable integer and is exactly 7 digits
+            if (int.TryParse(woData, out int result) && woData.Length == 7)
+            {
+                sendWRITEPacketToRC522(woData);
+            }
+            else
+            {
+                txtOUTPUT.AppendText("\r\n[ERROR] A 7-digit INTEGER number is expected in the workorder field! Cancelling write request!\r\n");
+            }
         }
 
         private void btnCLEAR_Click(object sender, EventArgs e)

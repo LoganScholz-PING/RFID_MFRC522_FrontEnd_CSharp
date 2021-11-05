@@ -21,12 +21,16 @@ namespace demoCSHARPtoRFID
         public void InitializeSerialComm()
         {
             _serialPort.PortName = "COM12";
-            _serialPort.BaudRate = 115200;
+            _serialPort.BaudRate = 9600;
             _serialPort.DataBits = 8;
             _serialPort.Parity = System.IO.Ports.Parity.None;
             _serialPort.Encoding = System.Text.Encoding.Default;
             _serialPort.StopBits = StopBits.One;
             _serialPort.Handshake = Handshake.None;
+
+            //_serialPort.DtrEnable = true;
+            _serialPort.RtsEnable = true;
+
             _serialPort.DataReceived += new SerialDataReceivedEventHandler(DataReceivedHandler);
 
             string[] COMports = SerialPort.GetPortNames();
@@ -134,15 +138,15 @@ namespace demoCSHARPtoRFID
                 return;
             }
 
+            //// clean up the serial buffer
+            //_serialPort.DiscardInBuffer();
+            //_serialPort.DiscardOutBuffer();
+            //_serialPort.BaseStream.Flush();
+
             try
             {
                 await Task.Run(() => _serialPort.WriteLine("<W:" + woData + ">"));
-                txtOUTPUT.AppendText("[INFO] Sent \"<W:" + woData + ">\" packet to uC\r\n");
-
-                // clean up the serial buffer
-                _serialPort.DiscardInBuffer();
-                _serialPort.DiscardOutBuffer();
-                _serialPort.BaseStream.Flush();
+                txtOUTPUT.AppendText("\r\n[INFO] Sent \"<W:" + woData + ">\" packet to uC" + "\r\n");
             }
             catch (Exception ex)
             {
@@ -187,11 +191,9 @@ namespace demoCSHARPtoRFID
             // 2. CSHARP sends '<W:#######>' to Teensy to request the WRITE of workorder ####### to memory
             //      2a. TEENSY replies with ACK or NACK depending on write success? ***TBD***
 
-            data = data.Trim();
+            string output = "[DEBUG] Received Packet from Teensy: " + data;
 
-            string output = "[DEBUG] Received Packet from Teensy: \"" + data + "\"\r\n";
-
-            txtOUTPUT.AppendText(output);
+            txtOUTPUT.AppendText(output + Environment.NewLine); // testing Environment.Newline here
 
             //           0123456789
             //           <D:#######>
@@ -211,8 +213,11 @@ namespace demoCSHARPtoRFID
             {
                 string inSerialData = _serialPort.ReadLine();
                 //inSerialData.Trim('\r', '\n');
-                //inSerialData = inSerialData.Trim();
-                this.BeginInvoke(new SetTextDelegate(si_DataReceived), new object[] { inSerialData });
+                inSerialData = inSerialData.Trim();
+                if (inSerialData.Length > 0)
+                {
+                    this.BeginInvoke(new SetTextDelegate(si_DataReceived), new object[] { inSerialData });
+                }
             }
             catch (Exception ex)
             {
